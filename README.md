@@ -31,8 +31,6 @@ $ CGO_ENABLED=1 go build /path/to/your/app.go
 
 Here are some examples of how to encode and decode AVIF images using this library. These snippets don't have any error handling for the sake of simplicity, but you should always check for errors in production code.
 
-For more complete examples, check the [example](example) folder.
-
 ### Encoding
 
 ```go
