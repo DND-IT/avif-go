@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run CLI" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="avif-go" />
+    <working_directory value="$PROJECT_DIR$/cmd" />
+    <parameters value="enc ../assets/image.jpg ../assets/image.avif" />
+    <kind value="PACKAGE" />
+    <package value="cli" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$/cmd/main.go" />
+    <method v="2" />
+  </configuration>
+</component>

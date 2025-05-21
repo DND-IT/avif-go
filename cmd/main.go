@@ -126,9 +126,9 @@ func main() {
 }
 
 func printResult(img image.Image, info os.FileInfo, duration time.Duration, isEncode bool) {
-	cmd := "encoded"
+	cmd := "decoded"
 	if isEncode {
-		cmd = "decoded"
+		cmd = "encoded"
 	}
 
 	msg := fmt.Sprintf("✅  Successfully %s image to %s in %s",
