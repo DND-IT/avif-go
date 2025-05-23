@@ -80,6 +80,8 @@ func decodeAvif(input, output string) (image.Image, os.FileInfo, error) {
 		return nil, nil, err
 	}
 
+	defer outputFile.Close()
+
 	switch ext {
 	case ".bmp":
 		err = bmp.Encode(outputFile, img)
