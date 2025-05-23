@@ -1,3 +1,4 @@
+// Package avif is a Go library and CLI tool to encode/decode AVIF images without system dependencies (CGO).
 package avif
 
 /*
