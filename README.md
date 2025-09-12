@@ -6,8 +6,8 @@ A Go library and CLI tool to encode/decode AVIF images without system dependenci
 
 There are a couple of libraries to encode/decode AVIF images in Go, and even though they do the job well, they have some limitations that don't satisfy my needs:
 
-- They either depend on libraries to be installed on the system to be built and/or later be executed.
-- They rely on a WASM runtime — which is actually a really smart idea! — but it has a big impact on performance.
+- They need dependencies to be installed on the system to either build the app or later execute it.
+- They rely on a WASM runtime - which is actually a really smart idea! - but it has a big impact on performance.
 
 **avif-go** uses CGO to create a static implementation of AVIF, so you don't need to have `libavif` (or any of its sub-dependencies) installed to build or run your Go application.
 
@@ -81,17 +81,16 @@ If you cannot build your app after importing **avif-go**, it is probably because
 
 You must either set a global environment variable with `export CGO_ENABLED=1` or set it in the command line when building your app with `CGO_ENABLED=1 go build /path/to/your/app.go`.
 
-### "App Is Damaged..." (Unidentified Developer — macOS only)
+### "App Is Damaged/Blocked..." (Windows & macOS only)
 
-For a couple of years now, Apple has required developers to join their "Developer Program" to gain the pretentious status of an _identified developer_ 😛.
+For a couple of years now, Microsoft and Apple have required developers to join their "Developer Program" to gain the pretentious status of an _identified developer_ 😛.
 
-Translating to non-BS language, this means that if you’re not registered with Apple (i.e., paying the fee), you can’t freely distribute macOS software. Apps from unidentified developers will display a message saying the app is damaged and can’t be opened.
+Translating to non-BS language, this means that if you’re not registered with them (i.e., paying the fee), you can’t freely distribute Windows or macOS software. Apps from unidentified developers will display a message saying the app is damaged or blocked and can’t be opened.
 
-To bypass this, open the Terminal and run the command below, replacing `<path-to-app>` with the correct path to where you’ve installed the app:
+To bypass this, open the Terminal and run one of the commands below (depending on your operating system), replacing `<path-to-app>` with the correct path to where you’ve installed the app:
 
-```bash
-$ xattr -d com.apple.quarantine <path-to-app>
-```
+- Windows: `Unblock-File -Path <path-to-app>`
+- macOS: `xattr -d com.apple.quarantine <path-to-app>`
 
 ## 📝 License
 
