@@ -30,8 +30,8 @@ func TestDecode(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, img)
-		assert.Greater(t, img.Bounds().Dx(), 0)
-		assert.Greater(t, img.Bounds().Dy(), 0)
+		assert.Equal(t, img.Bounds().Dx(), 1024)
+		assert.Equal(t, img.Bounds().Dy(), 1536)
 	})
 
 	t.Run("with image package", func(t *testing.T) {
@@ -122,8 +122,8 @@ func TestDecodeConfig(t *testing.T) {
 		config, err := avif.DecodeConfig(file)
 
 		assert.NoError(t, err)
-		assert.Greater(t, config.Width, 0)
-		assert.Greater(t, config.Height, 0)
+		assert.Equal(t, config.Width, 1024)
+		assert.Equal(t, config.Height, 1536)
 		assert.NotNil(t, config.ColorModel)
 	})
 
@@ -141,8 +141,8 @@ func TestDecodeConfig(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "avif", format)
-		assert.Greater(t, config.Width, 0)
-		assert.Greater(t, config.Height, 0)
+		assert.Equal(t, config.Width, 1024)
+		assert.Equal(t, config.Height, 1536)
 	})
 
 	t.Run("reader error", func(t *testing.T) {
