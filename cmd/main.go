@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/urfave/cli/v3"
-	"github.com/vegidio/avif-go"
 	"image"
 	"os"
 	"time"
+
+	"github.com/urfave/cli/v3"
+	"github.com/vegidio/avif-go"
 )
 
 func main() {

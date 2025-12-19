@@ -94,7 +94,7 @@ To bypass this, open the Terminal and run one of the commands below (depending o
 
 ## 📝 License
 
-**avif-go** is released under the MIT License. See [LICENSE](LICENSE) for details.
+**avif-go** is released under the Apache 2.0 License. See [LICENSE](LICENSE) for details.
 
 ## 👨🏾‍💻 Author
 
