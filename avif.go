@@ -185,6 +185,10 @@ func decodeAVIFToRGBA(data []byte) (*image.RGBA, error) {
 // DecodeConfig reads enough of r to determine the image's configuration (dimensions, etc.).
 // Here we read the entire data and call a lightweight C function that only parses the header.
 func decodeConfig(data []byte) (image.Config, error) {
+	if len(data) == 0 {
+		return image.Config{}, fmt.Errorf("failed to get AVIF image config: empty data")
+	}
+
 	var width, height C.uint32_t
 	C.get_avif_config((*C.uint8_t)(unsafe.Pointer(&data[0])), C.size_t(len(data)), &width, &height)
 

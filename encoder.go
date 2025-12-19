@@ -7,7 +7,7 @@ import (
 	"io"
 )
 
-// Options represents the configuration options for encoding an AVIF image.
+// Options represent the configuration options for encoding an AVIF image.
 //   - Speed: Controls the encoding speed, from 0-10. Higher values result in faster encoding but lower quality
 //     (default 6).
 //   - AlphaQuality: Specifies the quality of the alpha channel (transparency), from 0-100 (default 60).
