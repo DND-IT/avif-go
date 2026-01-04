@@ -83,6 +83,9 @@ import (
 // Speed ranges from 0 (slowest, best quality) to 10 (fastest, lower quality).
 //
 // ColorQuality and AlphaQuality range from 0 (worst) to 100 (lossless).
+//
+// Uses tiling to support images larger than SVT-AV1's dimension limits. For images within limits, creates a single tile
+// (1x1 grid) with identical performance.
 func encodeAVIF(rgba image.RGBA, options Options) ([]byte, error) {
 	width := rgba.Bounds().Dx()
 	height := rgba.Bounds().Dy()
@@ -91,72 +94,159 @@ func encodeAVIF(rgba image.RGBA, options Options) ([]byte, error) {
 		return nil, fmt.Errorf("invalid image dimensions: %dx%d", width, height)
 	}
 
-	// Create an avifImage for the output.
-	// Here we use 8 bits per channel and the YUV420 pixel format.
-	avifImage := C.avifImageCreate(C.uint32_t(width), C.uint32_t(height), 8, C.AVIF_PIXEL_FORMAT_YUV420)
-	if avifImage == nil {
-		return nil, fmt.Errorf("failed to create AVIF image")
+	// Calculate tile dimensions - use max dimensions supported by SVT-AV1
+	tileWidth := 16384
+	tileHeight := 8704
+
+	// Calculate the number of tiles needed (1x1 for images within limits)
+	cols := (width + tileWidth - 1) / tileWidth
+	rows := (height + tileHeight - 1) / tileHeight
+
+	// Create tiles
+	cellImages, err := createTiles(rgba, tileWidth, tileHeight)
+	if err != nil {
+		return nil, err
 	}
 
-	// Ensure the image memory is freed later
-	defer C.avifImageDestroy(avifImage)
+	defer func() {
+		for _, img := range cellImages {
+			if img != nil {
+				C.avifImageDestroy(img)
+			}
+		}
+	}()
 
-	// Allocate avifRGBImage on the C heap to avoid passing a pointer to a Go-allocated variable.
-	rgb := (*C.avifRGBImage)(C.malloc(C.size_t(unsafe.Sizeof(C.avifRGBImage{}))))
-	if rgb == nil {
-		return nil, fmt.Errorf("failed to allocate avifRGBImage")
-	}
-
-	defer C.free(unsafe.Pointer(rgb))
-
-	// Set defaults and fill in the fields.
-	C.avifRGBImageSetDefaults(rgb, avifImage)
-	rgb.format = C.AVIF_RGB_FORMAT_RGBA
-	rgb.depth = 8
-	rgb.pixels = (*C.uint8_t)(unsafe.Pointer(&rgba.Pix[0]))
-
-	// Explicitly cast the stride to C.uint32_t
-	rgb.rowBytes = C.uint32_t(rgba.Stride)
-
-	// Convert the RGB image to the YUV image required for AVIF
-	if C.avifImageRGBToYUV(avifImage, rgb) != C.AVIF_RESULT_OK {
-		return nil, fmt.Errorf("failed to convert image from RGB to YUV")
-	}
-
-	// Create an AVIF encoder instance
+	// Create encoder
 	encoder := C.avifEncoderCreate()
 	if encoder == nil {
 		return nil, fmt.Errorf("failed to create AVIF encoder")
 	}
-
-	// Make sure to clean up the encoder when done.
 	defer C.avifEncoderDestroy(encoder)
 
-	// Set SVT-AV1 as the backend.
 	encoder.codecChoice = C.AVIF_CODEC_CHOICE_SVT
-
-	// Optionally, adjust encoder parameters
 	encoder.speed = C.int(options.Speed)
 	encoder.quality = C.int(options.ColorQuality)
 	encoder.qualityAlpha = C.int(options.AlphaQuality)
 
-	// Initialize an avifRWData structure to hold the encoded data.
+	// Add the grid of images (1x1 for normal images, NxM for oversized)
+	result := C.avifEncoderAddImageGrid(encoder, C.uint32_t(cols), C.uint32_t(rows),
+		(**C.avifImage)(unsafe.Pointer(&cellImages[0])), C.AVIF_ADD_IMAGE_FLAG_SINGLE)
+
+	if result != C.AVIF_RESULT_OK {
+		errStr := C.GoString(C.get_error_string(result))
+		return nil, fmt.Errorf("failed to add image grid: %s", errStr)
+	}
+
+	// Finish encoding
 	var encodedData C.avifRWData
 	encodedData.data = nil
 	encodedData.size = 0
 
-	// Encode the image
-	result := C.avifEncoderWrite(encoder, avifImage, &encodedData)
+	result = C.avifEncoderFinish(encoder, &encodedData)
 	if result != C.AVIF_RESULT_OK {
 		errStr := C.GoString(C.get_error_string(result))
-		return nil, fmt.Errorf("failed to encode AVIF image: %s", errStr)
+		return nil, fmt.Errorf("failed to finish encoding: %s", errStr)
 	}
-	// Ensure the allocated AVIF data is freed later
 	defer C.avifRWDataFree(&encodedData)
 
-	// Convert the C buffer to a Go byte slice
 	data := C.GoBytes(unsafe.Pointer(encodedData.data), C.int(encodedData.size))
 	return data, nil
+}
+
+// createTiles splits the input RGBA image into tiles and converts them to AVIF format.
+// Returns a slice of avifImage pointers that must be freed by the caller.
+func createTiles(rgba image.RGBA, tileWidth, tileHeight int) ([]*C.avifImage, error) {
+	width := rgba.Bounds().Dx()
+	height := rgba.Bounds().Dy()
+
+	cols := (width + tileWidth - 1) / tileWidth
+	rows := (height + tileHeight - 1) / tileHeight
+
+	// Pre-allocate slice with exact capacity
+	cellImages := make([]*C.avifImage, 0, cols*rows)
+
+	// Pre-allocate tile buffer once and reuse
+	maxTileSize := tileWidth * tileHeight * 4
+	tileBuffer := make([]byte, maxTileSize)
+
+	for row := 0; row < rows; row++ {
+		for col := 0; col < cols; col++ {
+			// Calculate tile boundaries
+			x0 := col * tileWidth
+			y0 := row * tileHeight
+			x1 := x0 + tileWidth
+			y1 := y0 + tileHeight
+			if x1 > width {
+				x1 = width
+			}
+			if y1 > height {
+				y1 = height
+			}
+
+			tileW := x1 - x0
+			tileH := y1 - y0
+
+			// Use pre-allocated buffer
+			stride := tileW * 4
+			tileSize := tileH * stride
+			tilePix := tileBuffer[:tileSize]
+
+			// Copy rows
+			for y := 0; y < tileH; y++ {
+				srcY := y0 + y
+				dstOffset := y * stride
+				srcOffset := srcY*rgba.Stride + x0*4
+				copy(tilePix[dstOffset:dstOffset+stride], rgba.Pix[srcOffset:srcOffset+stride])
+			}
+
+			// Create and convert tile
+			avifImage, err := createAVIFTile(tilePix, tileW, tileH, stride, col, row)
+			if err != nil {
+				// Clean up already created tiles
+				for _, img := range cellImages {
+					if img != nil {
+						C.avifImageDestroy(img)
+					}
+				}
+				return nil, err
+			}
+
+			cellImages = append(cellImages, avifImage)
+		}
+	}
+
+	return cellImages, nil
+}
+
+// createAVIFTile creates an avifImage from raw RGBA pixel data.
+func createAVIFTile(pixels []byte, width, height, stride, col, row int) (*C.avifImage, error) {
+	avifImage := C.avifImageCreate(C.uint32_t(width), C.uint32_t(height), 8, C.AVIF_PIXEL_FORMAT_YUV420)
+	if avifImage == nil {
+		return nil, fmt.Errorf("failed to create AVIF image for tile (%d,%d)", col, row)
+	}
+
+	// Convert to YUV
+	rgb := (*C.avifRGBImage)(C.malloc(C.size_t(unsafe.Sizeof(C.avifRGBImage{}))))
+	if rgb == nil {
+		C.avifImageDestroy(avifImage)
+		return nil, fmt.Errorf("failed to allocate avifRGBImage for tile (%d,%d)", col, row)
+	}
+
+	C.avifRGBImageSetDefaults(rgb, avifImage)
+	rgb.format = C.AVIF_RGB_FORMAT_RGBA
+	rgb.depth = 8
+	rgb.pixels = (*C.uint8_t)(unsafe.Pointer(&pixels[0]))
+	rgb.rowBytes = C.uint32_t(stride)
+
+	result := C.avifImageRGBToYUV(avifImage, rgb)
+	C.free(unsafe.Pointer(rgb))
+
+	if result != C.AVIF_RESULT_OK {
+		C.avifImageDestroy(avifImage)
+		return nil, fmt.Errorf("failed to convert tile (%d,%d) from RGB to YUV", col, row)
+	}
+
+	return avifImage, nil
 }
 
 // decodeAVIFToRGBA decodes AVIF image data to an RGBA image.

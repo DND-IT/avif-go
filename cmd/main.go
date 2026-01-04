@@ -132,7 +132,7 @@ func printResult(img image.Image, info os.FileInfo, duration time.Duration, isEn
 		cmd = "encoded"
 	}
 
-	msg := fmt.Sprintf("✅  Successfully %s image to %s in %s",
+	msg := fmt.Sprintf("✅ Successfully %s image to %s in %s",
 		cmd, info.Name(), duration.Truncate(time.Millisecond))
 	fmt.Println(green.Render(msg))
 
