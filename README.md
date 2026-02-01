@@ -9,7 +9,7 @@ There are a couple of libraries to encode/decode AVIF images in Go, and even tho
 - They need dependencies to be installed on the system to either build the app or later execute it.
 - They rely on a WASM runtime - which is actually a really smart idea! - but it has a big impact on performance.
 
-**avif-go** uses CGO to create a static implementation of AVIF, so you don't need to have `libavif` (or any of its sub-dependencies) installed to build or run your Go application.
+**avif-go** uses CGO to create a static implementation of AVIF, so you don't need `libavif` (or any of its sub-dependencies) installed to build or run your Go application.
 
 It also runs on native code (supports `darwin/amd64`, `darwin/arm64`, `linux/amd64`, `linux/arm64`, `windows/amd64`, `windows/arm64`), so it achieves the best performance possible.
 
