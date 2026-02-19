@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/DND-IT/avif-go"
 	"github.com/urfave/cli/v3"
-	"github.com/vegidio/avif-go"
 )
 
 func main() {

@@ -14,8 +14,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/vegidio/avif-go"
-	_ "github.com/vegidio/avif-go"
+	"github.com/DND-IT/avif-go"
+	_ "github.com/DND-IT/avif-go"
 	"golang.org/x/image/bmp"
 	_ "golang.org/x/image/bmp"
 	"golang.org/x/image/tiff"

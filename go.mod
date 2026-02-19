@@ -1,4 +1,4 @@
-module github.com/vegidio/avif-go
+module github.com/DND-IT/avif-go
 
 go 1.24
 
