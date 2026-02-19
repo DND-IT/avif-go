@@ -1,3 +1,7 @@
+# avig-go fork
+
+Forked and changed included libraries (LDFLAGS) to successfully compile with alpine linux (ARM64) and ubuntu (AMD64).
+
 # avif-go
 
 A Go library and CLI tool to encode/decode AVIF images without system dependencies (CGO).
